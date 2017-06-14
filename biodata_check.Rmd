@@ -1,0 +1,176 @@
+---
+title: "Biodata Name Check"
+author: "Ian Bishop"
+date: "6/10/2017"
+output:
+  html_document: default
+  pdf_document: default
+author's github username: bishopia
+---
+
+<h3>Summary</h3>
+
+It has come to my attention that some researchers out there that would like to be able to quickly compare lists of taxonomic names that they use in the their own work with extensive USGS BioData Taxonomic System. I agree that this would be a useful tool and that it would help promote taxonomic consistency in North America, as far as algae, benthic macroinvertebrates, and fish are concerned. While I use the following function for diatom nomenclature, I have written it to suite the needs of those wishing to compare data to the BioData fish and invertebrate names.
+
+This document presents the function "biodata_check()". In addition to the code itself, I have provided notes on proper data formatting, required R packages, and several examples of its use.
+
+At this point, this function can be used in two ways. First, a user can input a list of names and the function will return that list and the current names that correspond to it. Second, a user can input species abundance dataset (a site by species matrix) and the function returns an updated matrix with updated nomenclature which has replaced and collapsed any deprecated or retired names (as designated by BioData) with their current synonyms. 
+
+<h3>Input Data Formatting and Restrictions</h3>
+It is crucial that the list of taxa or wide format dataset be formatted as indicated by the "EXAMPLE_taxon_list.csv" and "EXAMPLE_wide_format_dataset.csv". Specifically, check the following:
+<ul><li>File format is .csv</li>
+<li>Site by species abundance data has first column of sample names, and subsequent columns are species data only. No environmental data or extra factors should be present.</li>
+<li>Species column headers are EXACT species names. No underscores, periods, etc. These species names should be formatted exactly as names are found in the BenchTaxonName column in the Biodata file.</li>
+<li>The biodata name file downloaded must include deprecated and retired names. Do no use the "current names only" file.</li></ul>
+
+<h3>Required packages</h3>
+* qdapTools
+* reshape2
+
+<h3>The "biodata_check" function</h3>
+```{r}
+biodata_check <- function(list_filename="", data_filename="", biodata_filename="", data_type=c("List", "Dataframe")) {
+
+  #required libraries
+  library(qdapTools)
+  library(reshape2)
+  
+  #Import Biodata Complete Taxonomy  
+  biodata_names <- read.csv(paste(biodata_filename, ".csv", sep=""), header=TRUE, stringsAsFactors = FALSE, fileEncoding="UTF-8-BOM")
+  
+  
+  if (data_type=="List") {
+
+    #Import user list of taxa
+    user_list <- read.csv(paste(list_filename, ".csv", sep=""), header=TRUE, stringsAsFactors = FALSE)
+  
+    #Add user list to new conversion dataframe
+    conversion_df <- user_list
+    names(conversion_df)[1] <- "UserTaxa"
+  
+    #Compare user names to Biodata bench names, 
+    conversion_df$CurrentBiodataName <- lookup_e(conversion_df[,1], biodata_names[,c("BenchTaxonName", "BiodataTaxonName")])
+  
+    #Add column for change notes
+    conversion_df$ConversionNotes <- NA
+    conversion_df[is.na(conversion_df$CurrentBiodataName)==FALSE,]$ConversionNotes <- "Name Updated to Current Biodata Name"
+    conversion_df[is.na(conversion_df$CurrentBiodataName)==TRUE,]$ConversionNotes <- "Name Not Found In Biodata"
+    conversion_df$ConversionNotes[as.character(conversion_df$CurrentBiodataName)==as.character(conversion_df$UserTaxa)] <- "Name Already Current"
+  
+    #Replace NAs in CurrentBiodataName column with original user name.
+    conversion_df[is.na(conversion_df$CurrentBiodataName)==TRUE,]$CurrentBiodataName <- conversion_df[is.na(conversion_df$CurrentBiodataName)==TRUE,]$UserTaxa
+  
+    #confirm
+    conversion_df <- data.frame(lapply(conversion_df, as.character), stringsAsFactors=FALSE)
+  
+    #export conversion_df to .csv
+    # write.csv(conversion_df, "OUTPUT_converted_names.csv", row.names = FALSE)
+    return(conversion_df)
+  
+  } else if(data_type=="Dataframe") {
+  
+    #Import user wide format tidy dataset  
+    user_data <- read.csv(paste(data_filename, ".csv", sep=""), check.names = FALSE, stringsAsFactors=FALSE, header=TRUE, fileEncoding="UTF-8-BOM")
+    
+    #Add user list to new conversion dataframe
+    working_wide <- user_data
+  
+    #convert to long format
+    working_wide <- melt(working_wide, value.name="Count", variable.name="Taxon", id.vars="Sample")
+  
+    #add BiodataTaxon column of current Biodata names
+    working_wide$BiodataTaxon <- lookup_e(working_wide$Taxon, biodata_names[,c("BenchTaxonName", "BiodataTaxonName")])
+  
+  
+    
+    #change sheet
+    change_sheet <- working_wide[,c("Taxon", "BiodataTaxon")]
+    change_sheet <- unique(change_sheet)
+    #Add column for change notes
+    change_sheet$ConversionNotes <- NA
+    change_sheet[is.na(change_sheet$BiodataTaxon)==FALSE,]$ConversionNotes <- "Name Updated to Current Biodata Name"
+    change_sheet[is.na(change_sheet$BiodataTaxon)==TRUE,]$ConversionNotes <- "Name Not Found In Biodata"
+    change_sheet$ConversionNotes[as.character(change_sheet$BiodataTaxon)==as.character(change_sheet$Taxon)] <- "Name Already Current"
+    #fill NAs in change_sheet$BiodataTaxon with Taxon
+    change_sheet$BiodataTaxon[is.na(change_sheet$BiodataTaxon)] <- as.character(change_sheet$Taxon[is.na(change_sheet$BiodataTaxon)])
+  
+  
+    
+    #Fill in BiodataTaxon NAs with original taxon.
+    working_wide$BiodataTaxon[is.na(working_wide$BiodataTaxon)] <- as.character(working_wide$Taxon[is.na(working_wide$BiodataTaxon)])
+    
+    #collected list of names that have been changed
+    changed_names <- as.data.frame(unique(working_wide[working_wide$Taxon != working_wide$BiodataTaxon,]$Taxon))
+    colnames(changed_names) <- "Changed Names"
+    
+    
+    
+    #Replace NAs in BiodataTaxon column with original Taxon.
+    working_wide$Taxon <- working_wide$BiodataTaxon
+    #Remove BiodataTaxon column
+    working_wide$BiodataTaxon <- NULL
+  
+    #Collapse any species values that are now synonymized
+    working_wide <- aggregate(Count ~ Sample + Taxon, FUN = sum, data=working_wide)
+    
+    #Convert from long format back to wide format
+    working_wide <- dcast(working_wide, Sample ~ Taxon)
+    
+    #consider exporting this as XLSX with two datasheets
+    #export conversion_df to .csv
+    # write.csv(working_wide, "OUTPUT_renamed_data.csv", row.names = FALSE)
+    # #export changed name list
+    # write.csv(changed_names, "OUTPUT_name_changes.csv", row.names = FALSE)
+    
+    output<-list(UpdatedDataset = working_wide, ChangedNames = changed_names, NameTranslationSheet=change_sheet)
+    return(output)
+  
+  } else {return(print("ERROR: Please choose either 'List' or 'Dataframe' for data_type"))}
+}
+```
+
+
+
+<h3>Examples</h3>
+
+1. Input a list of taxa and return that list and corresponding current names in dataframe.
+```{r}
+biodata_check(list_filename="EXAMPLE_taxon_list", 
+              biodata_filename="biodata_taxonomy_20170609.1225.taxon_complete", 
+              data_type ="List")
+```
+
+2. Or if you only want that new list of current taxa:
+```{r}
+biodata_check(list_filename="EXAMPLE_taxon_list", 
+              biodata_filename="biodata_taxonomy_20170609.1225.taxon_complete", 
+              data_type ="List")$CurrentBiodataName
+```
+
+3. Input site by species abundance data (in wide, tidy format) and return dataset with updated names, a list of changed, names, and a conversion sheet for name changes.
+```{r message=FALSE}
+biodata_check(data_filename="EXAMPLE_wide_format_dataset", 
+              biodata_filename="biodata_taxonomy_20170609.1225.taxon_complete", 
+              data_type ="Dataframe")
+```
+
+4. Same as Example 3, but you only want to return the renamed dataset.
+```{r message=FALSE}
+biodata_check(data_filename="EXAMPLE_wide_format_dataset", 
+              biodata_filename="biodata_taxonomy_20170609.1225.taxon_complete", 
+              data_type ="Dataframe")$UpdatedDataset
+```
+
+5. Same as Example 3, but you only want a list of names that were changed.
+```{r message=FALSE}
+biodata_check(data_filename="EXAMPLE_wide_format_dataset", 
+              biodata_filename="biodata_taxonomy_20170609.1225.taxon_complete", 
+              data_type ="Dataframe")$ChangedNames
+```
+
+6. Same as Example 3, but you only want the conversion chart.
+```{r message=FALSE}
+biodata_check(data_filename="EXAMPLE_wide_format_dataset", 
+              biodata_filename="biodata_taxonomy_20170609.1225.taxon_complete", 
+              data_type ="Dataframe")$NameTranslationSheet
+```
