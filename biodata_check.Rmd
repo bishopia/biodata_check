@@ -1,7 +1,7 @@
 ---
 title: "Biodata Name Check"
 author: "Ian Bishop"
-date: "6/10/2017"
+date: "6/14/2017"
 output:
   html_document: default
   pdf_document: default
@@ -10,11 +10,11 @@ author's github username: bishopia
 
 <h3>Summary</h3>
 
-It has come to my attention that some researchers out there that would like to be able to quickly compare lists of taxonomic names that they use in the their own work with extensive USGS BioData Taxonomic System. I agree that this would be a useful tool and that it would help promote taxonomic consistency in North America, as far as algae, benthic macroinvertebrates, and fish are concerned. While I use the following function for diatom nomenclature, I have written it to suite the needs of those wishing to compare data to the BioData fish and invertebrate names.
+Some colleagues have recently expressed an interest in being able to quickly compare lists of taxonomic names that they use in the their own work with USGS BioData Taxonomic System. I agree that this would be a useful tool and that it would help promote taxonomic consistency in North America. I hope you find this useful and would appreciate feedback if one is inclined to do so.
 
-This document presents the function "biodata_check()". In addition to the code itself, I have provided notes on proper data formatting, required R packages, and several examples of its use.
+This repository concerns the "biodata_check()" function. In addition to the code itself, I have provided an R Markdown script with notes on proper data formatting, required R packages, and several examples of its use.
 
-At this point, this function can be used in two ways. First, a user can input a list of names and the function will return that list and the current names that correspond to it. Second, a user can input species abundance dataset (a site by species matrix) and the function returns an updated matrix with updated nomenclature which has replaced and collapsed any deprecated or retired names (as designated by BioData) with their current synonyms. 
+So far, this function can be used in two ways. First, a user can input a list of names and the function will return that list and the Biodata Taxon Name thats correspond to it. Second, a user can input a species abundance dataset (site by species matrix) and the function will return an updated matrix with updated nomenclature based on corresponding Biodata Taxon Names. Newly formed duplicates columns will be merged together.
 
 <h3>Input Data Formatting and Restrictions</h3>
 It is crucial that the list of taxa or wide format dataset be formatted as indicated by the "EXAMPLE_taxon_list.csv" and "EXAMPLE_wide_format_dataset.csv". Specifically, check the following:
