@@ -24,7 +24,8 @@ It is crucial that the list of taxa or wide format dataset be formatted as indic
 <li>The biodata name file downloaded must include deprecated and retired names. Do no use the "current names only" file.</li></ul>
 
 <h3>Required packages</h3>
-* qdapTools
+* qdapTools 
+<br>
 * reshape2
 
 <h3>The "biodata_check" function</h3>
