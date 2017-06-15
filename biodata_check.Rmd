@@ -137,41 +137,41 @@ biodata_check <- function(list_filename="", data_filename="", biodata_filename="
 1. Input a list of taxa and return that list and corresponding current names in dataframe.
 ```{r}
 biodata_check(list_filename="EXAMPLE_taxon_list", 
-              biodata_filename="biodata_taxonomy_20170609.1225.taxon_complete", 
+              biodata_filename="biodata_taxonomy_complete_20170614", 
               data_type ="List")
 ```
 
 2. Or if you only want that new list of current taxa:
 ```{r}
 biodata_check(list_filename="EXAMPLE_taxon_list", 
-              biodata_filename="biodata_taxonomy_20170609.1225.taxon_complete", 
+              biodata_filename="biodata_taxonomy_complete_20170614", 
               data_type ="List")$CurrentBiodataName
 ```
 
 3. Input site by species abundance data (in wide, tidy format) and return dataset with updated names, a list of changed, names, and a conversion sheet for name changes.
 ```{r message=FALSE}
 biodata_check(data_filename="EXAMPLE_wide_format_dataset", 
-              biodata_filename="biodata_taxonomy_20170609.1225.taxon_complete", 
+              biodata_filename="biodata_taxonomy_complete_20170614", 
               data_type ="Dataframe")
 ```
 
 4. Same as Example 3, but you only want to return the renamed dataset.
 ```{r message=FALSE}
 biodata_check(data_filename="EXAMPLE_wide_format_dataset", 
-              biodata_filename="biodata_taxonomy_20170609.1225.taxon_complete", 
+              biodata_filename="biodata_taxonomy_complete_20170614", 
               data_type ="Dataframe")$UpdatedDataset
 ```
 
 5. Same as Example 3, but you only want a list of names that were changed.
 ```{r message=FALSE}
 biodata_check(data_filename="EXAMPLE_wide_format_dataset", 
-              biodata_filename="biodata_taxonomy_20170609.1225.taxon_complete", 
+              biodata_filename="biodata_taxonomy_complete_20170614", 
               data_type ="Dataframe")$ChangedNames
 ```
 
 6. Same as Example 3, but you only want the conversion chart.
 ```{r message=FALSE}
 biodata_check(data_filename="EXAMPLE_wide_format_dataset", 
-              biodata_filename="biodata_taxonomy_20170609.1225.taxon_complete", 
+              biodata_filename="biodata_taxonomy_complete_20170614", 
               data_type ="Dataframe")$NameTranslationSheet
 ```
